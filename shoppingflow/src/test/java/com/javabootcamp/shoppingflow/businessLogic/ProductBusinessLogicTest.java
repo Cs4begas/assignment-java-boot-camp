@@ -44,7 +44,7 @@ class ProductBusinessLogicTest {
     }
 
     @Test
-    @DisplayName("Case Test Method getProductsByQueryParams ด้วย name = null ผลลัพธ์ results มีขนาดเท่ากับ 2")
+    @DisplayName("Case Success Test Method getProductsByQueryParams ด้วย name = null ผลลัพธ์ results มีขนาดเท่ากับ 2")
     void caseGetProductsListWithoutRequestParams() {
         when(productRepository.findAll()).thenReturn(products);
         Optional<String> param = Optional.empty();
@@ -54,7 +54,7 @@ class ProductBusinessLogicTest {
     }
 
     @Test
-    @DisplayName("Case Test Method getProductsByQueryParams ด้วย name = Nike ต้องได้ product ที่ id = 2 และ name = Nike")
+    @DisplayName("Case Success Test Method getProductsByQueryParams ด้วย name = Nike ต้องได้ product ที่ id = 2 และ name = Nike")
     void caseGetProductsListWithRequestParamNameIsNike() {
         when(productRepository.findByNameIgnoreCaseContaining("Nike")).thenReturn(products);
         Optional<String> param = Optional.of("Nike");
@@ -67,15 +67,17 @@ class ProductBusinessLogicTest {
     }
 
     @Test
-    @DisplayName("Case Test Method getProductsByQueryParams ด้วย name Pepsi ต้องได้ message Not found product name like Pepsi")
+    @DisplayName("Case Validate Test Method getProductsByQueryParams ด้วย name Pepsi ต้องได้ message Not found product name like Pepsi")
     void caseGetProductsListWithRequestParamNameIsPepsi() {
         when(productRepository.findByNameIgnoreCaseContaining("Pepsi")).thenReturn(List.of());
         Optional<String> param = Optional.of("Pepsi");
-        assertThrows(NotFoundException.class, () -> productBusinessLogic.getProductsByQueryParams(param), "Not found product name like Pepsi");
+
+        Exception exception = assertThrows(NotFoundException.class, () -> productBusinessLogic.getProductsByQueryParams(param), "Not found product name like Pepsi");
+        assertEquals("Not found product name like Pepsi", exception.getMessage());
     }
 
     @Test
-    @DisplayName("Case Test Method getProductById ด้วย id = 2 ต้องได้ product ที่ id = 1 และ name = Nike")
+    @DisplayName("Case Validate Test Method getProductById ด้วย id = 2 ต้องได้ product ที่ id = 1 และ name = Nike")
     void caseGetWithIdIs1() {
 
         when(productRepository.findById(2)).thenReturn(Optional.ofNullable(product2));
@@ -87,11 +89,13 @@ class ProductBusinessLogicTest {
     }
 
     @Test
-    @DisplayName("Case Test Method getProductById ด้วย id = 3 ต้องได้ message Not found product id 3")
+    @DisplayName("Case Validate Test Method getProductById ด้วย id = 3 ต้องได้ message Not found product id 3")
     void caseGetWithIdIs3() {
 
         when(productRepository.findById(3)).thenReturn(Optional.ofNullable(null));
-        assertThrows(NotFoundException.class, () -> productBusinessLogic.getProductById(Optional.of(3)), "Not found product id 3");
+
+        Exception exception= assertThrows(NotFoundException.class, () -> productBusinessLogic.getProductById(Optional.of(3)));
+        assertEquals("Not found product id 3", exception.getMessage());
     }
 
 
