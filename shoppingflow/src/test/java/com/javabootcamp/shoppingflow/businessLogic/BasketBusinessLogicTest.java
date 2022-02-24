@@ -50,7 +50,9 @@ class BasketBusinessLogicTest {
 
     private BasketItem basketItem;
 
-    private Basket basketWithOrder;
+    private Basket basketCheckout;
+
+    private Basket basketConfirmShipping;
 
     private List<OrderStatus> orderStatuses;
 
@@ -62,8 +64,10 @@ class BasketBusinessLogicTest {
         basketItem = CreateBasketItem();
         basket = CreateBasket();
         orderStatuses = CreateOrderStatus();
-        basketWithOrder = CreateBasketWithOrder();
+        basketCheckout = CreateBasketCheckout();
+        basketConfirmShipping = CreateBasketConfirmShipping();
     }
+
 
     private Customer CreateCustomer() {
         Customer customer = new Customer();
@@ -119,13 +123,26 @@ class BasketBusinessLogicTest {
         return basketOrder;
     }
 
-    private Basket CreateBasketWithOrder() {
-        Basket basketWithOrder = new Basket();
-        basketWithOrder.setId(1);
-        basketWithOrder.setCustomer(customer);
-        basketWithOrder.setBasketItem(basketItem);
-        basketWithOrder.setBasketOrder(CreateBasketOrder());
-        return basketWithOrder;
+    private Basket CreateBasketCheckout() {
+        Basket basket = new Basket();
+        basket.setId(1);
+        basket.setCustomer(customer);
+        basket.setBasketItem(basketItem);
+        basket.setBasketOrder(CreateBasketOrder());
+        OrderStatus checkOutOrderStatus = orderStatuses.stream().filter(orderStatus -> orderStatus.getDescription() == "Checkout").findFirst().get();
+        basket.getBasketOrder().setOrderStatus(checkOutOrderStatus);
+        return basket;
+    }
+
+    private Basket CreateBasketConfirmShipping() {
+        Basket basket = new Basket();
+        basket.setId(1);
+        basket.setCustomer(customer);
+        basket.setBasketItem(basketItem);
+        basket.setBasketOrder(CreateBasketOrder());
+        OrderStatus checkOutOrderStatus = orderStatuses.stream().filter(orderStatus -> orderStatus.getDescription() == "Confirm-Shipping").findFirst().get();
+        basket.getBasketOrder().setOrderStatus(checkOutOrderStatus);
+        return basket;
     }
 
 
@@ -198,6 +215,7 @@ class BasketBusinessLogicTest {
         when(customerRepository.findById(1)).thenReturn(Optional.of(customer));
         when(productRepository.findById(1)).thenReturn(Optional.of(product));
         when(basketRepository.save(any(Basket.class))).thenReturn(basket);
+
         Basket basketResult = basketBusinessLogic.CreateBasket(customerId, createBasketRequest);
 
         assertNotNull(basketResult);
@@ -212,6 +230,7 @@ class BasketBusinessLogicTest {
         Optional<Integer> basketId = Optional.empty();
 
         Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.GetBasket(customerId, basketId));
+
         assertEquals(exception.getMessage(),"Please insert customerId on header");
     }
 
@@ -222,6 +241,7 @@ class BasketBusinessLogicTest {
         Optional<Integer> basketId = Optional.empty();
 
         Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.GetBasket(customerId, basketId));
+
         assertEquals(exception.getMessage(),"Please insert id value in path parameters");
     }
 
@@ -232,6 +252,7 @@ class BasketBusinessLogicTest {
         Optional<Integer> basketId = Optional.ofNullable(1);
 
         Exception exception = assertThrows(NotFoundException.class, () -> basketBusinessLogic.GetBasket(customerId, basketId));
+
         assertEquals(exception.getMessage(),"Not found customerId 3");
     }
 
@@ -242,6 +263,7 @@ class BasketBusinessLogicTest {
         Optional<Integer> basketId = Optional.ofNullable(1);
         when(customerRepository.findById(1)).thenReturn(Optional.of(customer));
         when(basketRepository.findByIdAndCustomerId(1, 1)).thenReturn(Optional.ofNullable(basket));
+
         Basket basketResult = basketBusinessLogic.GetBasket(customerId, basketId);
 
         assertNotNull(basketResult);
@@ -256,6 +278,7 @@ class BasketBusinessLogicTest {
         Optional<Integer> basketId = Optional.empty();
 
         Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT));
+
         assertEquals(exception.getMessage(),"Please insert customerId on header");
     }
 
@@ -266,6 +289,7 @@ class BasketBusinessLogicTest {
         Optional<Integer> basketId = Optional.empty();
 
         Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT));
+
         assertEquals(exception.getMessage(),"Please insert id value in path parameters");
     }
 
@@ -276,6 +300,7 @@ class BasketBusinessLogicTest {
         Optional<Integer> basketId = Optional.ofNullable(1);
 
         Exception exception = assertThrows(NotFoundException.class, () -> basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT));
+
         assertEquals(exception.getMessage(),"Not found customerId 3");
     }
 
@@ -292,12 +317,13 @@ class BasketBusinessLogicTest {
 
     @Test
     @DisplayName("Case Validate Test Method HandleBasketOrder ด้วย customerId = 1 และ basketId 1 OrderStatusType เป็น CHECKOUT และ ConfirmOrderBasketRequest = null ต้องได้ message = Basket is already checkout")
-    void caseHandleBasketAlreadyCheckout() {
+    void caseHandleBasketAlreadyCheckout() { //Fix
         Optional<Integer> customerId = Optional.of(1);
         Optional<Integer> basketId = Optional.ofNullable(1);
         when(customerRepository.findById(1)).thenReturn(Optional.of(customer));
         when(basketRepository.findByIdAndCustomerId(1, 1)).thenReturn(Optional.ofNullable(basket));
         when(orderStatusRepository.findById(1)).thenReturn(Optional.of(orderStatuses.stream().filter(x -> x.getDescription().equals("Checkout")).findFirst().get()));
+
         Basket basketResult = basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT);
 
         assertNotNull(basketResult);
@@ -313,10 +339,40 @@ class BasketBusinessLogicTest {
         when(customerRepository.findById(1)).thenReturn(Optional.of(customer));
         when(basketRepository.findByIdAndCustomerId(1, 1)).thenReturn(Optional.ofNullable(basket));
         when(orderStatusRepository.findById(1)).thenReturn(Optional.of(orderStatuses.stream().filter(x -> x.getDescription().equals("Checkout")).findFirst().get()));
+
         Basket basketResult = basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT);
 
         assertNotNull(basketResult);
         assertNotNull(basketResult.getBasketOrder());
         assertEquals(basketResult.getBasketOrder().getOrderStatus().getDescription(), "Checkout");
     }
+
+    @Test
+    @DisplayName("Case Success Test Method HandleBasketOrder ด้วย customerId = 1 และ basketId 1 OrderStatusType เป็น CONFIRM_SHIPPING และ ConfirmOrderBasketRequest = null ต้องได้ Object Basket ที่ BasketOrder.OrderStatus = Confirm-Shipping")
+    void caseHandleBasketOrderStatusNotEqualCheckout() {
+        Optional<Integer> customerId = Optional.of(1);
+        Optional<Integer> basketId = Optional.ofNullable(1);
+        when(customerRepository.findById(1)).thenReturn(Optional.of(customer));
+        when(basketRepository.findByIdAndCustomerId(1, 1)).thenReturn(Optional.ofNullable(basketConfirmShipping));
+        when(orderStatusRepository.findById(2)).thenReturn(Optional.of(orderStatuses.stream().filter(x -> x.getDescription().equals("Checkout")).findFirst().get()));
+
+        Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CONFIRM_SHIPPING));
+        assertEquals(exception.getMessage(),"The basket's status is not Checkout");
+    }
+
+    @Test
+    @DisplayName("Case Success Test Method HandleBasketOrder ด้วย customerId = 1 และ basketId 1 OrderStatusType เป็น CONFIRM_SHIPPING และ ConfirmOrderBasketRequest = null ต้องได้ Object Basket ที่ BasketOrder.OrderStatus = Confirm-Shipping")
+    void caseHandleBasketShippingSuccess() {
+        Optional<Integer> customerId = Optional.of(1);
+        Optional<Integer> basketId = Optional.ofNullable(1);
+        when(customerRepository.findById(1)).thenReturn(Optional.of(customer));
+        when(basketRepository.findByIdAndCustomerId(1, 1)).thenReturn(Optional.ofNullable(basketCheckout));
+        when(orderStatusRepository.findById(2)).thenReturn(Optional.of(orderStatuses.stream().filter(x -> x.getDescription().equals("Confirm-Shipping")).findFirst().get()));
+
+        Basket basketResult = basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CONFIRM_SHIPPING);
+
+        assertEquals(basketResult.getBasketOrder().getOrderStatus().getDescription(), "Confirm-Shipping");
+    }
+
+
 }
