@@ -19,5 +19,11 @@ public class BasketController {
         return basketBusinessLogic.CreateBasket(customerId, basketRequest);
     }
 
+    @GetMapping("/api/baskets/{id}")
+    @ResponseBody
+    public Basket GetBasket(@RequestHeader("customerId") Optional<Integer> customerId, @PathVariable Optional<Integer> id) {
+        return basketBusinessLogic.GetBasket(customerId, id);
+    }
+
 
 }
