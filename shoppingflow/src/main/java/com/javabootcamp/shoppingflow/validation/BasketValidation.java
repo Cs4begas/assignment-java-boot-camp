@@ -1,6 +1,8 @@
 package com.javabootcamp.shoppingflow.validation;
 
+import com.javabootcamp.shoppingflow.exception.NotFoundException;
 import com.javabootcamp.shoppingflow.exception.ValidationException;
+import com.javabootcamp.shoppingflow.model.entity.Basket;
 import com.javabootcamp.shoppingflow.model.entity.request.CreateBasketRequest;
 import org.springframework.stereotype.Component;
 
@@ -30,5 +32,20 @@ public class BasketValidation {
         }
     }
 
+    public void ValidateGetBasketRequest(Optional<Integer> customerId, Optional<Integer> basketId) {
+        ValidateCustomerIdRequest(customerId);
+        ValidateBasketIdRequest(basketId);
+    }
 
+    private void ValidateBasketIdRequest(Optional<Integer> basketId) {
+        if (!basketId.isPresent()) {
+            throw new ValidationException("Please insert id value in path parameters");
+        }
+    }
+
+    public void ValidateExistBasket(Basket basket, int basketId) {
+        if (basket == null) {
+            throw new NotFoundException(String.format("Not found basket Id %d", basketId));
+        }
+    }
 }
