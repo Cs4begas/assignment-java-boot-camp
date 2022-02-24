@@ -79,4 +79,16 @@ public class BasketBusinessLogic {
 
         return basket;
     }
+
+    public Basket GetBasket(Optional<Integer> customerId, Optional<Integer> basketId) {
+        basketValidation.ValidateGetBasketRequest(customerId, basketId);
+        int customerIdValue = customerId.get();
+        int basketIdValue = basketId.get();
+        customerRepository.findById(customerIdValue).orElseThrow(() -> new NotFoundException(String.format("Not found customerId %d", customerId.get())));
+        Optional<Basket> basketData = basketRepository.findByIdAndCustomerId(customerIdValue, basketIdValue);
+        Basket basket = basketData.get();
+        basketValidation.ValidateExistBasket(basket, basketId.get());
+        return basket;
+    }
+
 }

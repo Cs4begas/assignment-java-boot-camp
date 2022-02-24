@@ -146,10 +146,11 @@ class BasketBusinessLogicTest {
     }
 
     @Test
-    @DisplayName("Case NotFound Test Method CreateBasket ด้วย customerId = 3 และ CreateBasketRequest ด้วย productId 3 ต้องได้ Not found productId 3")
+    @DisplayName("Case NotFound Test Method CreateBasket ด้วย customerId = 1 และ CreateBasketRequest ด้วย productId 3 ต้องได้ Not found productId 3")
     void caseCreateBasketWithProductIdIs3NotFound() {
         Optional<Integer> customerId = Optional.of(1);
         CreateBasketRequest createBasketRequest = new CreateBasketRequest(3, "34");
+        when(customerRepository.findById(1)).thenReturn(Optional.of(customer));
 
         Exception exception = assertThrows(NotFoundException.class, () -> basketBusinessLogic.CreateBasket(customerId, createBasketRequest), "Not found productId 3");
         assertEquals("Not found productId 3", exception.getMessage());
@@ -164,6 +165,50 @@ class BasketBusinessLogicTest {
         when(productRepository.findById(1)).thenReturn(Optional.of(product));
         when(basketRepository.save(any(Basket.class))).thenReturn(basket);
         Basket basketResult = basketBusinessLogic.CreateBasket(customerId, createBasketRequest);
+
+        assertNotNull(basketResult);
+        assertNotNull(basketResult.getCustomer());
+        assertNotNull(basketResult.getBasketItem());
+    }
+
+    @Test
+    @DisplayName("Case Validate Test Method GetBasket ด้วย customerId = null และ basketId = null ต้องได้ message Please insert customerId on header")
+    void caseGetBasketWithCustomerIdIsNull() {
+        Optional<Integer> customerId = Optional.ofNullable(null);
+        Optional<Integer> basketId = Optional.ofNullable(null);
+
+        Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.GetBasket(customerId, basketId));
+        assertEquals(exception.getMessage(),"Please insert customerId on header");
+    }
+
+    @Test
+    @DisplayName("Case Validate Test Method GetBasket ด้วย customerId = 1 และ basketId = null ต้องได้ message Please insert id value in path parameters")
+    void caseGetBasketWithBasketIdIsNull() {
+        Optional<Integer> customerId = Optional.ofNullable(1);
+        Optional<Integer> basketId = Optional.ofNullable(null);
+
+        Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.GetBasket(customerId, basketId));
+        assertEquals(exception.getMessage(),"Please insert id value in path parameters");
+    }
+
+    @Test
+    @DisplayName("Case NotFound Test Method GetBasket ด้วย customerId = 3 และ basketId = 1 ต้องได้ message Not found customerId 3")
+    void caseGetBasketWithCustomerIdIs3() {
+        Optional<Integer> customerId = Optional.ofNullable(3);
+        Optional<Integer> basketId = Optional.ofNullable(1);
+
+        Exception exception = assertThrows(NotFoundException.class, () -> basketBusinessLogic.GetBasket(customerId, basketId));
+        assertEquals(exception.getMessage(),"Not found customerId 3");
+    }
+
+    @Test
+    @DisplayName("Case Success Test Method GetBasket ด้วย customerId = 1 และ basketId 1 ต้องได้ ฺBasket ไม่ null , Basket.Customer ไม่ null และ Basket.BasketProduct ไม่ null")
+    void caseGetBasketSuccess() {
+        Optional<Integer> customerId = Optional.of(1);
+        Optional<Integer> basketId = Optional.ofNullable(1);
+        when(customerRepository.findById(1)).thenReturn(Optional.of(customer));
+        when(basketRepository.findByIdAndCustomerId(1, 1)).thenReturn(Optional.ofNullable(basket));
+        Basket basketResult = basketBusinessLogic.GetBasket(customerId, basketId);
 
         assertNotNull(basketResult);
         assertNotNull(basketResult.getCustomer());
