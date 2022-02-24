@@ -1,4 +1,4 @@
-package com.javabootcamp.shoppingflow.model.entity.request;
+package com.javabootcamp.shoppingflow.model.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
