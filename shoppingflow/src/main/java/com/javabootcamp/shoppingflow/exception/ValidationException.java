@@ -3,9 +3,9 @@ package com.javabootcamp.shoppingflow.exception;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor
-public class NotFoundException extends RuntimeException {
+public class ValidationException extends RuntimeException {
 
-    public NotFoundException(String message) {
+    public ValidationException(String message) {
         super(message);
     }
 }

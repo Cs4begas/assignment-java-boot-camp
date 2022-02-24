@@ -6,6 +6,8 @@ import com.javabootcamp.shoppingflow.model.entity.request.CreateBasketRequest;
 import com.javabootcamp.shoppingflow.repository.BasketRepository;
 import com.javabootcamp.shoppingflow.repository.CustomerRepository;
 import com.javabootcamp.shoppingflow.repository.ProductRepository;
+import com.javabootcamp.shoppingflow.validation.BasketValidation;
+import com.sun.istack.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -18,15 +20,18 @@ public class BasketBusinessLogic {
     private BasketRepository basketRepository;
     private CustomerRepository customerRepository;
     private ProductRepository productRepository;
+    private BasketValidation basketValidation;
 
     @Autowired
-    public BasketBusinessLogic(BasketRepository basketRepository, CustomerRepository customerRepository, ProductRepository productRepository) {
+    public BasketBusinessLogic(BasketRepository basketRepository, CustomerRepository customerRepository, ProductRepository productRepository, BasketValidation basketValidation) {
         this.basketRepository = basketRepository;
         this.customerRepository = customerRepository;
         this.productRepository = productRepository;
+        this.basketValidation = basketValidation;
     }
 
     public Basket CreateBasket(Optional<Integer> customerId, CreateBasketRequest basketRequest) {
+        basketValidation.ValidateCreateBasketRequest(customerId, basketRequest);
         int customerIdValue = customerId.get();
         int productId = basketRequest.getProductId();
 

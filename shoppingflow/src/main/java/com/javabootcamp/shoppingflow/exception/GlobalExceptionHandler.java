@@ -16,4 +16,10 @@ public class GlobalExceptionHandler {
         return new ApiError(e.getMessage());
     }
 
+    @ExceptionHandler(ValidationException.class)
+    @ResponseBody
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiError handleValidationException(ValidationException e) {
+        return new ApiError(e.getMessage());
+    }
 }
