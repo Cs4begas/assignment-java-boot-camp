@@ -3,10 +3,7 @@ package com.javabootcamp.shoppingflow.controller;
 import com.javabootcamp.shoppingflow.businessLogic.ProductBusinessLogic;
 import com.javabootcamp.shoppingflow.model.entity.Product;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
@@ -23,5 +20,10 @@ public class ProductController {
         return productBusinessLogic.getProductsByQueryParams(name);
     }
 
+    @GetMapping("/api/products/{id}")
+    @ResponseBody
+    public Product getProductById(@PathVariable Optional<Integer> id) {
+        return productBusinessLogic.getProductById(id);
+    }
 
 }
