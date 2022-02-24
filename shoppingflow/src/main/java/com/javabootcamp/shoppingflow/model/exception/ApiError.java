@@ -1,4 +1,4 @@
-package com.javabootcamp.shoppingflow.model.entity.exception;
+package com.javabootcamp.shoppingflow.model.exception;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

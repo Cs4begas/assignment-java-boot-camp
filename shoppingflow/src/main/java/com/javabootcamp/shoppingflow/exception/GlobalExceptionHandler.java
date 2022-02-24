@@ -1,6 +1,6 @@
 package com.javabootcamp.shoppingflow.exception;
 
-import com.javabootcamp.shoppingflow.model.entity.exception.ApiError;
+import com.javabootcamp.shoppingflow.model.exception.ApiError;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;

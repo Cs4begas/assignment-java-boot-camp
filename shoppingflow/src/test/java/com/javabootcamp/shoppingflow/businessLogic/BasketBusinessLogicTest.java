@@ -3,9 +3,11 @@ package com.javabootcamp.shoppingflow.businessLogic;
 import com.javabootcamp.shoppingflow.exception.NotFoundException;
 import com.javabootcamp.shoppingflow.exception.ValidationException;
 import com.javabootcamp.shoppingflow.model.entity.*;
-import com.javabootcamp.shoppingflow.model.entity.request.CreateBasketRequest;
+import com.javabootcamp.shoppingflow.model.enums.OrderStatusType;
+import com.javabootcamp.shoppingflow.model.request.CreateBasketRequest;
 import com.javabootcamp.shoppingflow.repository.BasketRepository;
 import com.javabootcamp.shoppingflow.repository.CustomerRepository;
+import com.javabootcamp.shoppingflow.repository.OrderStatusRepository;
 import com.javabootcamp.shoppingflow.repository.ProductRepository;
 import com.javabootcamp.shoppingflow.validation.BasketValidation;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,6 +18,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,6 +37,8 @@ class BasketBusinessLogicTest {
     private CustomerRepository customerRepository;
     @Mock
     private BasketRepository basketRepository;
+    @Mock
+    private OrderStatusRepository orderStatusRepository;
 
     private BasketBusinessLogic basketBusinessLogic;
 
@@ -45,13 +50,19 @@ class BasketBusinessLogicTest {
 
     private BasketItem basketItem;
 
+    private Basket basketWithOrder;
+
+    private List<OrderStatus> orderStatuses;
+
     @BeforeEach
     public void setUp() {
-        basketBusinessLogic = new BasketBusinessLogic(basketRepository, customerRepository, productRepository, basketValidation);
+        basketBusinessLogic = new BasketBusinessLogic(basketRepository, customerRepository, productRepository, orderStatusRepository, basketValidation);
         customer = CreateCustomer();
         product = CreateProduct();
         basketItem = CreateBasketItem();
         basket = CreateBasket();
+        orderStatuses = CreateOrderStatus();
+        basketWithOrder = CreateBasketWithOrder();
     }
 
     private Customer CreateCustomer() {
@@ -92,6 +103,29 @@ class BasketBusinessLogicTest {
         basket.setCustomer(customer);
         basket.setBasketItem(basketItem);
         return basket;
+    }
+
+    private List<OrderStatus> CreateOrderStatus() {
+        List<OrderStatus> orderStatuses = new ArrayList<>();
+        orderStatuses.add(new OrderStatus(1, "Checkout"));
+        orderStatuses.add(new OrderStatus(2, "Confirm-Shipping"));
+        orderStatuses.add(new OrderStatus(3, "Confirm-Order"));
+        return orderStatuses;
+    }
+
+    private BasketOrder CreateBasketOrder() {
+        BasketOrder basketOrder = new BasketOrder();
+        basketOrder.setOrderAmount(10000.0);
+        return basketOrder;
+    }
+
+    private Basket CreateBasketWithOrder() {
+        Basket basketWithOrder = new Basket();
+        basketWithOrder.setId(1);
+        basketWithOrder.setCustomer(customer);
+        basketWithOrder.setBasketItem(basketItem);
+        basketWithOrder.setBasketOrder(CreateBasketOrder());
+        return basketWithOrder;
     }
 
 
@@ -174,8 +208,8 @@ class BasketBusinessLogicTest {
     @Test
     @DisplayName("Case Validate Test Method GetBasket ด้วย customerId = null และ basketId = null ต้องได้ message Please insert customerId on header")
     void caseGetBasketWithCustomerIdIsNull() {
-        Optional<Integer> customerId = Optional.ofNullable(null);
-        Optional<Integer> basketId = Optional.ofNullable(null);
+        Optional<Integer> customerId = Optional.empty();
+        Optional<Integer> basketId = Optional.empty();
 
         Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.GetBasket(customerId, basketId));
         assertEquals(exception.getMessage(),"Please insert customerId on header");
@@ -185,7 +219,7 @@ class BasketBusinessLogicTest {
     @DisplayName("Case Validate Test Method GetBasket ด้วย customerId = 1 และ basketId = null ต้องได้ message Please insert id value in path parameters")
     void caseGetBasketWithBasketIdIsNull() {
         Optional<Integer> customerId = Optional.ofNullable(1);
-        Optional<Integer> basketId = Optional.ofNullable(null);
+        Optional<Integer> basketId = Optional.empty();
 
         Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.GetBasket(customerId, basketId));
         assertEquals(exception.getMessage(),"Please insert id value in path parameters");
@@ -213,5 +247,76 @@ class BasketBusinessLogicTest {
         assertNotNull(basketResult);
         assertNotNull(basketResult.getCustomer());
         assertNotNull(basketResult.getBasketItem());
+    }
+
+    @Test
+    @DisplayName("Case Validate Test Method HandleBasket ด้วย customerId = null และ basketId = null ต้องได้ message Please insert customerId on header")
+    void caseHandleBasketWithCustomerIdIsNull() {
+        Optional<Integer> customerId = Optional.empty();
+        Optional<Integer> basketId = Optional.empty();
+
+        Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT));
+        assertEquals(exception.getMessage(),"Please insert customerId on header");
+    }
+
+    @Test
+    @DisplayName("Case Validate Test Method HandleBasket ด้วย customerId = 1 และ basketId = null ต้องได้ message Please insert id value in path parameters")
+    void caseHandleBasketWithBasketIdIsNull() {
+        Optional<Integer> customerId = Optional.ofNullable(1);
+        Optional<Integer> basketId = Optional.empty();
+
+        Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT));
+        assertEquals(exception.getMessage(),"Please insert id value in path parameters");
+    }
+
+    @Test
+    @DisplayName("Case NotFound Test Method HandleBasket ด้วย customerId = 3, basketId = 2, OrderStatusType = CHECKOUT ต้องได้ message = Not found customerId 4")
+    void caseHandleBasketWithCustomerIdIs4() {
+        Optional<Integer> customerId = Optional.ofNullable(3);
+        Optional<Integer> basketId = Optional.ofNullable(1);
+
+        Exception exception = assertThrows(NotFoundException.class, () -> basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT));
+        assertEquals(exception.getMessage(),"Not found customerId 3");
+    }
+
+    @Test
+    @DisplayName("Case Validate Test Method HandleBasket ด้วย customerId = 1, basketId = 2, OrderStatusType = CHECKOUT ต้องได้ message = Customer's basket is invalid")
+    void caseHandleBasketWithCustomerIdIs1AndBasketId2() {
+        Optional<Integer> customerId = Optional.ofNullable(1);
+        Optional<Integer> basketId = Optional.ofNullable(2);
+        when(customerRepository.findById(1)).thenReturn(Optional.of(customer));
+
+        Exception exception = assertThrows(NotFoundException.class, () -> basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT));
+        assertEquals(exception.getMessage(),"Customer's basket is not found");
+    }
+
+    @Test
+    @DisplayName("Case Validate Test Method HandleBasketOrder ด้วย customerId = 1 และ basketId 1 OrderStatusType เป็น CHECKOUT และ ConfirmOrderBasketRequest = null ต้องได้ message = Basket is already checkout")
+    void caseHandleBasketAlreadyCheckout() {
+        Optional<Integer> customerId = Optional.of(1);
+        Optional<Integer> basketId = Optional.ofNullable(1);
+        when(customerRepository.findById(1)).thenReturn(Optional.of(customer));
+        when(basketRepository.findByIdAndCustomerId(1, 1)).thenReturn(Optional.ofNullable(basket));
+        when(orderStatusRepository.findById(1)).thenReturn(Optional.of(orderStatuses.stream().filter(x -> x.getDescription().equals("Checkout")).findFirst().get()));
+        Basket basketResult = basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT);
+
+        assertNotNull(basketResult);
+        assertNotNull(basketResult.getBasketOrder());
+        assertEquals(basketResult.getBasketOrder().getOrderStatus().getDescription(), "Checkout");
+    }
+
+    @Test
+    @DisplayName("Case Success Test Method HandleBasketOrder ด้วย customerId = 1 และ basketId 1 OrderStatusType เป็น CHECKOUT และ ConfirmOrderBasketRequest = null ต้องได้ Object Basket ที่ BasketOrder != null และ BasketOrder.OrderStatus = Checkout")
+    void caseHandleBasketCheckoutSuccess() {
+        Optional<Integer> customerId = Optional.of(1);
+        Optional<Integer> basketId = Optional.ofNullable(1);
+        when(customerRepository.findById(1)).thenReturn(Optional.of(customer));
+        when(basketRepository.findByIdAndCustomerId(1, 1)).thenReturn(Optional.ofNullable(basket));
+        when(orderStatusRepository.findById(1)).thenReturn(Optional.of(orderStatuses.stream().filter(x -> x.getDescription().equals("Checkout")).findFirst().get()));
+        Basket basketResult = basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT);
+
+        assertNotNull(basketResult);
+        assertNotNull(basketResult.getBasketOrder());
+        assertEquals(basketResult.getBasketOrder().getOrderStatus().getDescription(), "Checkout");
     }
 }

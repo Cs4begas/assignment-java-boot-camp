@@ -2,7 +2,8 @@ package com.javabootcamp.shoppingflow.controller;
 
 import com.javabootcamp.shoppingflow.businessLogic.BasketBusinessLogic;
 import com.javabootcamp.shoppingflow.model.entity.Basket;
-import com.javabootcamp.shoppingflow.model.entity.request.CreateBasketRequest;
+import com.javabootcamp.shoppingflow.model.enums.OrderStatusType;
+import com.javabootcamp.shoppingflow.model.request.CreateBasketRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +24,12 @@ public class BasketController {
     @ResponseBody
     public Basket GetBasket(@RequestHeader("customerId") Optional<Integer> customerId, @PathVariable Optional<Integer> id) {
         return basketBusinessLogic.GetBasket(customerId, id);
+    }
+
+    @PatchMapping("/api/baskets/{id}/checkout")
+    @ResponseBody
+    public Basket CheckoutBasket(@RequestHeader("customerId") Optional<Integer> customerId, @PathVariable Optional<Integer> id) {
+        return basketBusinessLogic.HandleBasketOrder(customerId, id, OrderStatusType.CHECKOUT);
     }
 
 
