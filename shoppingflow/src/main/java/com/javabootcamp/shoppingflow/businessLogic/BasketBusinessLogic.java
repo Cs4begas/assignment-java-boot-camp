@@ -104,6 +104,9 @@ public class BasketBusinessLogic {
             case CHECKOUT:
                 basket = CreateCheckoutBasketOrder(basket, orderStatus);
                 break;
+            case CONFIRM_SHIPPING:
+                basket = ConfirmShippingBasketOrder(basket, orderStatus);
+                break;
         }
         basketRepository.save(basket);
         return basket;
@@ -118,6 +121,16 @@ public class BasketBusinessLogic {
         basketOrder.setOrderStatus(orderStatus);
         basketOrder.setOrderAmount(basket.getBasketItem().getItemNetPrice());
         basket.setBasketOrder(basketOrder);
+        return basket;
+    }
+
+    public Basket ConfirmShippingBasketOrder(Basket basket, OrderStatus orderStatus) {
+        String orderStatusCheckout= OrderStatusType.CHECKOUT.getName();
+        if(!basket.getBasketOrder().getOrderStatus().getDescription().equals(orderStatusCheckout)){
+            throw new ValidationException("The basket's status is not Checkout");
+        }
+        BasketOrder basketOrder = basket.getBasketOrder();
+        basketOrder.setOrderStatus(orderStatus);
         return basket;
     }
 }

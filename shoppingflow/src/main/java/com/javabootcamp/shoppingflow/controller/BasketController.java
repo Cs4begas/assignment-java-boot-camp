@@ -32,5 +32,10 @@ public class BasketController {
         return basketBusinessLogic.HandleBasketOrder(customerId, id, OrderStatusType.CHECKOUT);
     }
 
+    @PatchMapping("/api/baskets/{id}/confirm-shipping")
+    @ResponseBody
+    public Basket ConfirmShippingBasket(@RequestHeader("customerId") Optional<Integer> customerId, @PathVariable Optional<Integer> id) {
+        return basketBusinessLogic.HandleBasketOrder(customerId, id, OrderStatusType.CONFIRM_SHIPPING);
+    }
 
 }
