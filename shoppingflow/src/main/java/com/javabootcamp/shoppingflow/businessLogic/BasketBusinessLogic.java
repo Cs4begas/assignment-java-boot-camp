@@ -1,13 +1,15 @@
 package com.javabootcamp.shoppingflow.businessLogic;
 
 import com.javabootcamp.shoppingflow.exception.NotFoundException;
+import com.javabootcamp.shoppingflow.exception.ValidationException;
 import com.javabootcamp.shoppingflow.model.entity.*;
-import com.javabootcamp.shoppingflow.model.entity.request.CreateBasketRequest;
+import com.javabootcamp.shoppingflow.model.enums.OrderStatusType;
+import com.javabootcamp.shoppingflow.model.request.CreateBasketRequest;
 import com.javabootcamp.shoppingflow.repository.BasketRepository;
 import com.javabootcamp.shoppingflow.repository.CustomerRepository;
+import com.javabootcamp.shoppingflow.repository.OrderStatusRepository;
 import com.javabootcamp.shoppingflow.repository.ProductRepository;
 import com.javabootcamp.shoppingflow.validation.BasketValidation;
-import com.sun.istack.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -20,13 +22,15 @@ public class BasketBusinessLogic {
     private BasketRepository basketRepository;
     private CustomerRepository customerRepository;
     private ProductRepository productRepository;
+    private OrderStatusRepository orderStatusRepository;
     private BasketValidation basketValidation;
 
     @Autowired
-    public BasketBusinessLogic(BasketRepository basketRepository, CustomerRepository customerRepository, ProductRepository productRepository, BasketValidation basketValidation) {
+    public BasketBusinessLogic(BasketRepository basketRepository, CustomerRepository customerRepository, ProductRepository productRepository, OrderStatusRepository orderStatusRepository, BasketValidation basketValidation) {
         this.basketRepository = basketRepository;
         this.customerRepository = customerRepository;
         this.productRepository = productRepository;
+        this.orderStatusRepository = orderStatusRepository;
         this.basketValidation = basketValidation;
     }
 
@@ -54,13 +58,11 @@ public class BasketBusinessLogic {
     }
 
     private Customer GetCustomer(int customerIdValue) {
-        Customer customer = customerRepository.findById(customerIdValue).orElseThrow(() -> new NotFoundException(String.format("Not found customerId %d", customerIdValue)));
-        return customer;
+        return customerRepository.findById(customerIdValue).orElseThrow(() -> new NotFoundException(String.format("Not found customerId %d", customerIdValue)));
     }
 
     private Product GetProduct(int productId) {
-        Product product = productRepository.findById(productId).orElseThrow(() -> new NotFoundException(String.format("Not found productId %s", productId)));
-        return product;
+        return productRepository.findById(productId).orElseThrow(() -> new NotFoundException(String.format("Not found productId %s", productId)));
     }
 
     private Basket CreateBasketToSave(Customer customer, Product product, String selectedSize) {
@@ -91,4 +93,31 @@ public class BasketBusinessLogic {
         return basket;
     }
 
+    public Basket HandleBasketOrder(Optional<Integer> customerId, Optional<Integer> basketId, OrderStatusType orderStatusType) {
+        basketValidation.ValidateGetBasketRequest(customerId, basketId);
+        int customerIdValue = customerId.get();
+        int basketIdValue = basketId.get();
+        customerRepository.findById(customerId.get()).orElseThrow(() -> new NotFoundException(String.format("Not found customerId %d", customerIdValue)));
+        Basket basket = basketRepository.findByIdAndCustomerId(customerIdValue, basketIdValue).orElseThrow(() -> new NotFoundException("Customer's basket is not found"));
+        OrderStatus orderStatus = orderStatusRepository.findById(orderStatusType.getId()).get();
+        switch (orderStatusType) {
+            case CHECKOUT:
+                basket = CreateCheckoutBasketOrder(basket, orderStatus);
+                break;
+        }
+        basketRepository.save(basket);
+        return basket;
+    }
+
+    private Basket CreateCheckoutBasketOrder(Basket basket, OrderStatus orderStatus) {
+        if (basket.getBasketOrder() != null) {
+            throw new ValidationException("Basket is already checkout");
+        }
+        BasketOrder basketOrder = new BasketOrder();
+        basketOrder.setBasket(basket);
+        basketOrder.setOrderStatus(orderStatus);
+        basketOrder.setOrderAmount(basket.getBasketItem().getItemNetPrice());
+        basket.setBasketOrder(basketOrder);
+        return basket;
+    }
 }

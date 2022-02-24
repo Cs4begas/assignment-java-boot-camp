@@ -3,7 +3,7 @@ package com.javabootcamp.shoppingflow.validation;
 import com.javabootcamp.shoppingflow.exception.NotFoundException;
 import com.javabootcamp.shoppingflow.exception.ValidationException;
 import com.javabootcamp.shoppingflow.model.entity.Basket;
-import com.javabootcamp.shoppingflow.model.entity.request.CreateBasketRequest;
+import com.javabootcamp.shoppingflow.model.request.CreateBasketRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
