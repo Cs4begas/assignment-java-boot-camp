@@ -6,6 +6,7 @@ import com.javabootcamp.shoppingflow.model.entity.*;
 import com.javabootcamp.shoppingflow.model.enums.OrderStatusType;
 import com.javabootcamp.shoppingflow.model.request.ConfirmOrderBasketRequest;
 import com.javabootcamp.shoppingflow.model.request.CreateBasketRequest;
+import com.javabootcamp.shoppingflow.model.response.BasketSummaryResponse;
 import com.javabootcamp.shoppingflow.repository.*;
 import com.javabootcamp.shoppingflow.validation.BasketValidation;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -59,6 +61,8 @@ class BasketBusinessLogicTest {
 
     private List<OrderStatus> orderStatuses;
 
+    private Basket basketConfirmOrder;
+
     @BeforeEach
     public void setUp() {
         basketBusinessLogic = new BasketBusinessLogic(basketRepository, customerRepository, productRepository, orderStatusRepository, paymentTypeRepository, basketValidation);
@@ -71,7 +75,9 @@ class BasketBusinessLogicTest {
         basketConfirmShipping = CreateBasketConfirmShipping();
         confirmOrderBasketRequest = CreateConfirmBasketRequest();
         paymentType = CreatePaymentType();
+        basketConfirmOrder = CreateBasketConfirmOrder();
     }
+
 
     private Customer CreateCustomer() {
         Customer customer = new Customer();
@@ -165,6 +171,35 @@ class BasketBusinessLogicTest {
         paymentType.setId(1);
         paymentType.setDescription("บัตรเครดิต");
         return paymentType;
+    }
+
+    private Basket CreateBasketConfirmOrder() {
+        Basket basket = new Basket();
+        basket.setId(1);
+        basket.setCustomer(customer);
+        basket.setBasketItem(basketItem);
+
+        BasketOrder basketOrder = CreateBasketOrder();
+        basketOrder = CreateBasketOrderPayment(basketOrder);
+        basketOrder.setInvoiceNumber("122485");
+        OrderStatus confirmOrderStatus = orderStatuses.stream().filter(orderStatus -> orderStatus.getDescription() == "Confirm-Order").findFirst().get();
+        basketOrder.setOrderStatus(confirmOrderStatus);
+        basket.setBasketOrder(basketOrder);
+        return basket;
+
+    }
+    private BasketOrder CreateBasketOrderPayment(BasketOrder basketOrder){
+        BasketPayment basketPayment = new BasketPayment();
+        basketPayment.setCardNumber(123214);
+        basketPayment.setCardOwnerName("Leo Messi");
+        basketPayment.setCardExpiredMonth(4);
+        basketPayment.setCardExpiredYear(2015);
+        basketPayment.setCardCcvCvv(123);
+        basketPayment.setCreatedAt(new Date(System.currentTimeMillis()));
+        basketPayment.setPaymentType(paymentType);
+
+        basketOrder.setBasketPayment(basketPayment);
+        return basketOrder;
     }
 
 
@@ -371,7 +406,7 @@ class BasketBusinessLogicTest {
     }
 
     @Test
-    @DisplayName("Case Success Test Method HandleBasketOrder ด้วย customerId = 1 และ basketId 1 OrderStatusType เป็น CONFIRM_SHIPPING และ ConfirmOrderBasketRequest = null ต้องได้ message = The basket's status is not Checkout")
+    @DisplayName("Case Success Test Method HandleBasketOrder ด้วย customerId = 1 และ basketId 1 OrderStatusType เป็น CONFIRM_SHIPPING และ ConfirmOrderBasketRequest = null ต้องได้ message = Basket status is not Checkout")
     void caseHandleBasketShippingStatusNotEqualCheckout() {
         Optional<Integer> customerId = Optional.of(1);
         Optional<Integer> basketId = Optional.ofNullable(1);
@@ -380,7 +415,7 @@ class BasketBusinessLogicTest {
         when(orderStatusRepository.findById(2)).thenReturn(Optional.of(orderStatuses.stream().filter(x -> x.getDescription().equals("Checkout")).findFirst().get()));
 
         Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CONFIRM_SHIPPING, null));
-        assertEquals(exception.getMessage(), "The basket's status is not Checkout");
+        assertEquals(exception.getMessage(), "Basket status is not Checkout");
     }
 
     @Test
@@ -398,7 +433,7 @@ class BasketBusinessLogicTest {
     }
 
     @Test
-    @DisplayName("Case Validate Test Method HandleBasketOrder ด้วย customerId = 1 และ basketId 1 OrderStatusType เป็น CONFIRM_ORDER  และ ConfirmOrderBasketRequest = null ต้องได้ message = The basket's status is not Checkout")
+    @DisplayName("Case Validate Test Method HandleBasketOrder ด้วย customerId = 1 และ basketId 1 OrderStatusType เป็น CONFIRM_ORDER  และ ConfirmOrderBasketRequest = null ต้องได้ message = Basket status is not Confirm-Shipping")
     void caseConfirmBasketOrderNotEqualConfirmShipping() {
         Optional<Integer> customerId = Optional.of(1);
         Optional<Integer> basketId = Optional.ofNullable(1);
@@ -407,7 +442,7 @@ class BasketBusinessLogicTest {
         when(orderStatusRepository.findById(3)).thenReturn(Optional.of(orderStatuses.stream().filter(x -> x.getDescription().equals("Confirm-Order")).findFirst().get()));
 
         Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CONFIRM_ORDER, null));
-        assertEquals(exception.getMessage(), "This basket's status is not Confirm-Shipping");
+        assertEquals(exception.getMessage(), "Basket status is not Confirm-Shipping");
     }
 
     @Test
@@ -455,6 +490,43 @@ class BasketBusinessLogicTest {
         String generateInvoiceNumber = basketBusinessLogic.GenerateInvoiceNumber();
         assertEquals(generateInvoiceNumber.length(),6);
         assertNotEquals(generateInvoiceNumber,"");
+    }
+
+    @Test
+    @DisplayName("Case Validation Test Method GetBasketSummary ด้วย basket ที่ยังไม่ Checkout ต้องได้ message Basket status is not Checkout")
+    void caseTestMethodGetBasketSummaryNotCheckout() {
+        Optional<Integer> customerId = Optional.of(1);
+        Optional<Integer> basketId = Optional.ofNullable(1);
+        when(basketRepository.findByIdAndCustomerId(customerId.get(), basketId.get())).thenReturn(Optional.ofNullable(basket));
+        Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.GetBasketSummary(customerId, basketId));
+        assertEquals(exception.getMessage(),"Basket status is not Checkout");
+    }
+
+    @Test
+    @DisplayName("Case Validation Test Method GetBasketSummary ด้วย basket ที่ basketOrderStatus != Confirm-Order ต้องได้ message Basket status is not Confirm-Order")
+    void caseTestMethodGetBasketSummaryNotConfirmOrder() {
+        Optional<Integer> customerId = Optional.of(1);
+        Optional<Integer> basketId = Optional.ofNullable(1);
+        when(basketRepository.findByIdAndCustomerId(customerId.get(), basketId.get())).thenReturn(Optional.ofNullable(basketConfirmShipping));
+        Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.GetBasketSummary(customerId, basketId));
+        assertEquals(exception.getMessage(),"Basket status is not Confirm-Order");
+    }
+
+    @Test
+    @DisplayName("Case Success Test Method GetBasketSummary ด้วย basket ที่ผ่านการ Confirm-Order แล้ว ต้องได้ Object BasketSummary ที่ invoiceNumber, payer = Messi, transactionDate มีค่า, paymentType มีค่า และ NetAmount มีค่า")
+    void caseTestMethodGetBasketSummarySuccess() {
+
+        Optional<Integer> customerId = Optional.of(1);
+        Optional<Integer> basketId = Optional.ofNullable(1);
+        when(basketRepository.findByIdAndCustomerId(customerId.get(), basketId.get())).thenReturn(Optional.ofNullable(basketConfirmOrder));
+        BasketSummaryResponse basketSummaryResponse = basketBusinessLogic.GetBasketSummary(customerId, basketId);
+
+        assertNotNull(basketSummaryResponse.getInvoiceNumber());
+        assertNotEquals(basketSummaryResponse.getInvoiceNumber(), "");
+        assertEquals(basketSummaryResponse.getPayer(), "Leo Messi");
+        assertNotNull(basketSummaryResponse.getTransactionDate());
+        assertNotNull(basketSummaryResponse.getPaymentType());
+        assertNotNull(basketSummaryResponse.getNetAmount());
     }
 
 
