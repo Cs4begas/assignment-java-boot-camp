@@ -4,17 +4,16 @@ import com.javabootcamp.shoppingflow.exception.NotFoundException;
 import com.javabootcamp.shoppingflow.exception.ValidationException;
 import com.javabootcamp.shoppingflow.model.entity.*;
 import com.javabootcamp.shoppingflow.model.enums.OrderStatusType;
+import com.javabootcamp.shoppingflow.model.request.ConfirmOrderBasketRequest;
 import com.javabootcamp.shoppingflow.model.request.CreateBasketRequest;
-import com.javabootcamp.shoppingflow.repository.BasketRepository;
-import com.javabootcamp.shoppingflow.repository.CustomerRepository;
-import com.javabootcamp.shoppingflow.repository.OrderStatusRepository;
-import com.javabootcamp.shoppingflow.repository.ProductRepository;
+import com.javabootcamp.shoppingflow.repository.*;
 import com.javabootcamp.shoppingflow.validation.BasketValidation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 
 @Component
 public class BasketBusinessLogic {
@@ -23,14 +22,16 @@ public class BasketBusinessLogic {
     private CustomerRepository customerRepository;
     private ProductRepository productRepository;
     private OrderStatusRepository orderStatusRepository;
+    private PaymentTypeRepository paymentTypeRepository;
     private BasketValidation basketValidation;
 
     @Autowired
-    public BasketBusinessLogic(BasketRepository basketRepository, CustomerRepository customerRepository, ProductRepository productRepository, OrderStatusRepository orderStatusRepository, BasketValidation basketValidation) {
+    public BasketBusinessLogic(BasketRepository basketRepository, CustomerRepository customerRepository, ProductRepository productRepository, OrderStatusRepository orderStatusRepository, PaymentTypeRepository paymentTypeRepository, BasketValidation basketValidation) {
         this.basketRepository = basketRepository;
         this.customerRepository = customerRepository;
         this.productRepository = productRepository;
         this.orderStatusRepository = orderStatusRepository;
+        this.paymentTypeRepository = paymentTypeRepository;
         this.basketValidation = basketValidation;
     }
 
@@ -93,7 +94,7 @@ public class BasketBusinessLogic {
         return basket;
     }
 
-    public Basket HandleBasketOrder(Optional<Integer> customerId, Optional<Integer> basketId, OrderStatusType orderStatusType) {
+    public Basket HandleBasketOrder(Optional<Integer> customerId, Optional<Integer> basketId, OrderStatusType orderStatusType, ConfirmOrderBasketRequest confirmOrderBasketRequest) {
         basketValidation.ValidateGetBasketRequest(customerId, basketId);
         int customerIdValue = customerId.get();
         int basketIdValue = basketId.get();
@@ -107,6 +108,8 @@ public class BasketBusinessLogic {
             case CONFIRM_SHIPPING:
                 basket = ConfirmShippingBasketOrder(basket, orderStatus);
                 break;
+            case CONFIRM_ORDER:
+                basket = ConfirmOrderBasket(basket, orderStatus, confirmOrderBasketRequest);
         }
         basketRepository.save(basket);
         return basket;
@@ -125,12 +128,43 @@ public class BasketBusinessLogic {
     }
 
     public Basket ConfirmShippingBasketOrder(Basket basket, OrderStatus orderStatus) {
-        String orderStatusCheckout= OrderStatusType.CHECKOUT.getName();
-        if(!basket.getBasketOrder().getOrderStatus().getDescription().equals(orderStatusCheckout)){
+        String orderStatusCheckout = OrderStatusType.CHECKOUT.getName();
+        if (!basket.getBasketOrder().getOrderStatus().getDescription().equals(orderStatusCheckout)) {
             throw new ValidationException("The basket's status is not Checkout");
         }
         BasketOrder basketOrder = basket.getBasketOrder();
         basketOrder.setOrderStatus(orderStatus);
         return basket;
+    }
+
+    public Basket ConfirmOrderBasket(Basket basket, OrderStatus orderStatus, ConfirmOrderBasketRequest confirmOrderBasketRequest) {
+        String orderStatusConfirmShipping = OrderStatusType.CONFIRM_SHIPPING.getName();
+        if (!basket.getBasketOrder().getOrderStatus().getDescription().equals(orderStatusConfirmShipping)) {
+            throw new ValidationException("This basket's status is not Confirm-Shipping");
+        }
+        BasketOrder basketOrder = basket.getBasketOrder();
+        int paymentTypeId = confirmOrderBasketRequest.getPaymentTypeId();
+        PaymentType paymentType = paymentTypeRepository.findById(paymentTypeId).orElseThrow(() -> new NotFoundException(String.format("Not found PaymentTypeId %d", paymentTypeId)));
+
+        BasketPayment payment = new BasketPayment();
+        payment.setCardNumber(confirmOrderBasketRequest.getCardNumber());
+        payment.setCardOwnerName(confirmOrderBasketRequest.getCardOwnerName());
+        payment.setCardExpiredMonth(confirmOrderBasketRequest.getCardExpiredMonth());
+        payment.setCardExpiredYear(confirmOrderBasketRequest.getCardExpiredYear());
+        payment.setCardCcvCvv(confirmOrderBasketRequest.getCardCcvCvv());
+        payment.setPaymentType(paymentType);
+
+        basketOrder.setOrderStatus(orderStatus);
+        basketOrder.setBasketPayment(payment);
+        basketOrder.setInvoiceNumber(GenerateInvoiceNumber());
+
+        return basket;
+
+    }
+
+    public String GenerateInvoiceNumber() {
+        Random rnd = new Random();
+        int number = rnd.nextInt(999999);
+        return String.format("%06d", number);
     }
 }
