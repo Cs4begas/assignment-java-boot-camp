@@ -4,11 +4,9 @@ import com.javabootcamp.shoppingflow.exception.NotFoundException;
 import com.javabootcamp.shoppingflow.exception.ValidationException;
 import com.javabootcamp.shoppingflow.model.entity.*;
 import com.javabootcamp.shoppingflow.model.enums.OrderStatusType;
+import com.javabootcamp.shoppingflow.model.request.ConfirmOrderBasketRequest;
 import com.javabootcamp.shoppingflow.model.request.CreateBasketRequest;
-import com.javabootcamp.shoppingflow.repository.BasketRepository;
-import com.javabootcamp.shoppingflow.repository.CustomerRepository;
-import com.javabootcamp.shoppingflow.repository.OrderStatusRepository;
-import com.javabootcamp.shoppingflow.repository.ProductRepository;
+import com.javabootcamp.shoppingflow.repository.*;
 import com.javabootcamp.shoppingflow.validation.BasketValidation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,7 +21,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -39,6 +36,8 @@ class BasketBusinessLogicTest {
     private BasketRepository basketRepository;
     @Mock
     private OrderStatusRepository orderStatusRepository;
+    @Mock
+    private PaymentTypeRepository paymentTypeRepository;
 
     private BasketBusinessLogic basketBusinessLogic;
 
@@ -54,11 +53,15 @@ class BasketBusinessLogicTest {
 
     private Basket basketConfirmShipping;
 
+    private ConfirmOrderBasketRequest confirmOrderBasketRequest;
+
+    private PaymentType paymentType;
+
     private List<OrderStatus> orderStatuses;
 
     @BeforeEach
     public void setUp() {
-        basketBusinessLogic = new BasketBusinessLogic(basketRepository, customerRepository, productRepository, orderStatusRepository, basketValidation);
+        basketBusinessLogic = new BasketBusinessLogic(basketRepository, customerRepository, productRepository, orderStatusRepository, paymentTypeRepository, basketValidation);
         customer = CreateCustomer();
         product = CreateProduct();
         basketItem = CreateBasketItem();
@@ -66,8 +69,9 @@ class BasketBusinessLogicTest {
         orderStatuses = CreateOrderStatus();
         basketCheckout = CreateBasketCheckout();
         basketConfirmShipping = CreateBasketConfirmShipping();
+        confirmOrderBasketRequest = CreateConfirmBasketRequest();
+        paymentType = CreatePaymentType();
     }
-
 
     private Customer CreateCustomer() {
         Customer customer = new Customer();
@@ -145,6 +149,24 @@ class BasketBusinessLogicTest {
         return basket;
     }
 
+    private ConfirmOrderBasketRequest CreateConfirmBasketRequest() {
+        ConfirmOrderBasketRequest confirmOrderBasketRequest = new ConfirmOrderBasketRequest();
+        confirmOrderBasketRequest.setCardNumber(1221345);
+        confirmOrderBasketRequest.setCardOwnerName("Leo Messi");
+        confirmOrderBasketRequest.setCardExpiredMonth(4);
+        confirmOrderBasketRequest.setCardExpiredYear(2025);
+        confirmOrderBasketRequest.setCardCcvCvv(124);
+        confirmOrderBasketRequest.setPaymentTypeId(1);
+        return confirmOrderBasketRequest;
+    }
+
+    private PaymentType CreatePaymentType() {
+        PaymentType paymentType = new PaymentType();
+        paymentType.setId(1);
+        paymentType.setDescription("บัตรเครดิต");
+        return paymentType;
+    }
+
 
     @Test
     @DisplayName("Case Validate Test Method CreateBasket ด้วย customerId = null และ CreateBasketRequest = null ต้องได้ message Please insert customerId on header")
@@ -185,6 +207,7 @@ class BasketBusinessLogicTest {
         Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.CreateBasket(customerId, createBasketRequest));
         assertEquals("Body CreateBasketRequest size is null", exception.getMessage());
     }
+
     @Test
     @DisplayName("Case NotFound Test Method CreateBasket ด้วย customerId = 3 และ CreateBasketRequest ต้องได้ Not found customerId 3")
     void caseCreateBasketWithCustomerIdIs3NotFound() {
@@ -231,7 +254,7 @@ class BasketBusinessLogicTest {
 
         Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.GetBasket(customerId, basketId));
 
-        assertEquals(exception.getMessage(),"Please insert customerId on header");
+        assertEquals(exception.getMessage(), "Please insert customerId on header");
     }
 
     @Test
@@ -242,7 +265,7 @@ class BasketBusinessLogicTest {
 
         Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.GetBasket(customerId, basketId));
 
-        assertEquals(exception.getMessage(),"Please insert id value in path parameters");
+        assertEquals(exception.getMessage(), "Please insert id value in path parameters");
     }
 
     @Test
@@ -253,7 +276,7 @@ class BasketBusinessLogicTest {
 
         Exception exception = assertThrows(NotFoundException.class, () -> basketBusinessLogic.GetBasket(customerId, basketId));
 
-        assertEquals(exception.getMessage(),"Not found customerId 3");
+        assertEquals(exception.getMessage(), "Not found customerId 3");
     }
 
     @Test
@@ -277,9 +300,9 @@ class BasketBusinessLogicTest {
         Optional<Integer> customerId = Optional.empty();
         Optional<Integer> basketId = Optional.empty();
 
-        Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT));
+        Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT, null));
 
-        assertEquals(exception.getMessage(),"Please insert customerId on header");
+        assertEquals(exception.getMessage(), "Please insert customerId on header");
     }
 
     @Test
@@ -288,9 +311,9 @@ class BasketBusinessLogicTest {
         Optional<Integer> customerId = Optional.ofNullable(1);
         Optional<Integer> basketId = Optional.empty();
 
-        Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT));
+        Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT, null));
 
-        assertEquals(exception.getMessage(),"Please insert id value in path parameters");
+        assertEquals(exception.getMessage(), "Please insert id value in path parameters");
     }
 
     @Test
@@ -299,9 +322,9 @@ class BasketBusinessLogicTest {
         Optional<Integer> customerId = Optional.ofNullable(3);
         Optional<Integer> basketId = Optional.ofNullable(1);
 
-        Exception exception = assertThrows(NotFoundException.class, () -> basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT));
+        Exception exception = assertThrows(NotFoundException.class, () -> basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT, null));
 
-        assertEquals(exception.getMessage(),"Not found customerId 3");
+        assertEquals(exception.getMessage(), "Not found customerId 3");
     }
 
     @Test
@@ -311,8 +334,8 @@ class BasketBusinessLogicTest {
         Optional<Integer> basketId = Optional.ofNullable(2);
         when(customerRepository.findById(1)).thenReturn(Optional.of(customer));
 
-        Exception exception = assertThrows(NotFoundException.class, () -> basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT));
-        assertEquals(exception.getMessage(),"Customer's basket is not found");
+        Exception exception = assertThrows(NotFoundException.class, () -> basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT, null));
+        assertEquals(exception.getMessage(), "Customer's basket is not found");
     }
 
     @Test
@@ -324,7 +347,7 @@ class BasketBusinessLogicTest {
         when(basketRepository.findByIdAndCustomerId(1, 1)).thenReturn(Optional.ofNullable(basket));
         when(orderStatusRepository.findById(1)).thenReturn(Optional.of(orderStatuses.stream().filter(x -> x.getDescription().equals("Checkout")).findFirst().get()));
 
-        Basket basketResult = basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT);
+        Basket basketResult = basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT, null);
 
         assertNotNull(basketResult);
         assertNotNull(basketResult.getBasketOrder());
@@ -340,7 +363,7 @@ class BasketBusinessLogicTest {
         when(basketRepository.findByIdAndCustomerId(1, 1)).thenReturn(Optional.ofNullable(basket));
         when(orderStatusRepository.findById(1)).thenReturn(Optional.of(orderStatuses.stream().filter(x -> x.getDescription().equals("Checkout")).findFirst().get()));
 
-        Basket basketResult = basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT);
+        Basket basketResult = basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT, null);
 
         assertNotNull(basketResult);
         assertNotNull(basketResult.getBasketOrder());
@@ -348,30 +371,90 @@ class BasketBusinessLogicTest {
     }
 
     @Test
-    @DisplayName("Case Success Test Method HandleBasketOrder ด้วย customerId = 1 และ basketId 1 OrderStatusType เป็น CONFIRM_SHIPPING และ ConfirmOrderBasketRequest = null ต้องได้ Object Basket ที่ BasketOrder.OrderStatus = Confirm-Shipping")
-    void caseHandleBasketOrderStatusNotEqualCheckout() {
+    @DisplayName("Case Success Test Method HandleBasketOrder ด้วย customerId = 1 และ basketId 1 OrderStatusType เป็น CONFIRM_SHIPPING และ ConfirmOrderBasketRequest = null ต้องได้ message = The basket's status is not Checkout")
+    void caseHandleBasketShippingStatusNotEqualCheckout() {
         Optional<Integer> customerId = Optional.of(1);
         Optional<Integer> basketId = Optional.ofNullable(1);
         when(customerRepository.findById(1)).thenReturn(Optional.of(customer));
         when(basketRepository.findByIdAndCustomerId(1, 1)).thenReturn(Optional.ofNullable(basketConfirmShipping));
         when(orderStatusRepository.findById(2)).thenReturn(Optional.of(orderStatuses.stream().filter(x -> x.getDescription().equals("Checkout")).findFirst().get()));
 
-        Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CONFIRM_SHIPPING));
-        assertEquals(exception.getMessage(),"The basket's status is not Checkout");
+        Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CONFIRM_SHIPPING, null));
+        assertEquals(exception.getMessage(), "The basket's status is not Checkout");
     }
 
     @Test
     @DisplayName("Case Success Test Method HandleBasketOrder ด้วย customerId = 1 และ basketId 1 OrderStatusType เป็น CONFIRM_SHIPPING และ ConfirmOrderBasketRequest = null ต้องได้ Object Basket ที่ BasketOrder.OrderStatus = Confirm-Shipping")
-    void caseHandleBasketShippingSuccess() {
+    void caseConfirmBasketShippingSuccess() {
         Optional<Integer> customerId = Optional.of(1);
         Optional<Integer> basketId = Optional.ofNullable(1);
         when(customerRepository.findById(1)).thenReturn(Optional.of(customer));
         when(basketRepository.findByIdAndCustomerId(1, 1)).thenReturn(Optional.ofNullable(basketCheckout));
         when(orderStatusRepository.findById(2)).thenReturn(Optional.of(orderStatuses.stream().filter(x -> x.getDescription().equals("Confirm-Shipping")).findFirst().get()));
 
-        Basket basketResult = basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CONFIRM_SHIPPING);
+        Basket basketResult = basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CONFIRM_SHIPPING, null);
 
         assertEquals(basketResult.getBasketOrder().getOrderStatus().getDescription(), "Confirm-Shipping");
+    }
+
+    @Test
+    @DisplayName("Case Validate Test Method HandleBasketOrder ด้วย customerId = 1 และ basketId 1 OrderStatusType เป็น CONFIRM_ORDER  และ ConfirmOrderBasketRequest = null ต้องได้ message = The basket's status is not Checkout")
+    void caseConfirmBasketOrderNotEqualConfirmShipping() {
+        Optional<Integer> customerId = Optional.of(1);
+        Optional<Integer> basketId = Optional.ofNullable(1);
+        when(customerRepository.findById(1)).thenReturn(Optional.of(customer));
+        when(basketRepository.findByIdAndCustomerId(1, 1)).thenReturn(Optional.ofNullable(basketCheckout));
+        when(orderStatusRepository.findById(3)).thenReturn(Optional.of(orderStatuses.stream().filter(x -> x.getDescription().equals("Confirm-Order")).findFirst().get()));
+
+        Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CONFIRM_ORDER, null));
+        assertEquals(exception.getMessage(), "This basket's status is not Confirm-Shipping");
+    }
+
+    @Test
+    @DisplayName("Case NotFound Test Method HandleBasketOrder ด้วย customerId = 1 และ basketId 1 OrderStatusType เป็น CONFIRM_ORDER และ ConfirmOrderBasketRequest = confirmOrderBasketRequest ต้องได้ message = Not found PaymentTypeId 5")
+    void caseConfirmBasketOrderNotFoundPaymentType() {
+        Optional<Integer> customerId = Optional.of(1);
+        Optional<Integer> basketId = Optional.ofNullable(1);
+        confirmOrderBasketRequest.setPaymentTypeId(5);
+
+        when(customerRepository.findById(1)).thenReturn(Optional.of(customer));
+        when(basketRepository.findByIdAndCustomerId(1, 1)).thenReturn(Optional.ofNullable(basketConfirmShipping));
+        when(orderStatusRepository.findById(3)).thenReturn(Optional.of(orderStatuses.stream().filter(x -> x.getDescription().equals("Confirm-Order")).findFirst().get()));
+
+        Exception exception = assertThrows(NotFoundException.class, () -> basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CONFIRM_ORDER, confirmOrderBasketRequest));
+        assertEquals(exception.getMessage(), "Not found PaymentTypeId 5");
+    }
+
+    @Test
+    @DisplayName("Case Success Test Method HandleBasketOrder ด้วย customerId = 1 และ basketId 1 OrderStatusType เป็น CONFIRM_ORDER และ ConfirmOrderBasketRequest = confirmOrderBasketRequest ต้องได้ Object Basket ที่ BasketOrder != null และ BasketOrder.OrderStatus = Confirm-Order และ BasketOrder.BasketPayment != null และ BasketOrder.BasketPayment.cardNumber = 1221345 และ ฺBasketOrder.BasketPayment.PaymentType.Description = บัตรเครดิต และ BasketOrder.invoiceNumber != null และ BasketOrder.invoiceNumber != empty string")
+    void caseConfirmBasketOrderSuccess() {
+        Optional<Integer> customerId = Optional.of(1);
+        Optional<Integer> basketId = Optional.ofNullable(1);
+
+        when(customerRepository.findById(1)).thenReturn(Optional.of(customer));
+        when(basketRepository.findByIdAndCustomerId(1, 1)).thenReturn(Optional.ofNullable(basketConfirmShipping));
+        when(orderStatusRepository.findById(3)).thenReturn(Optional.of(orderStatuses.stream().filter(x -> x.getDescription().equals("Confirm-Order")).findFirst().get()));
+        when(paymentTypeRepository.findById(1)).thenReturn(Optional.ofNullable(paymentType));
+
+        Basket basketResult = basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CONFIRM_ORDER, confirmOrderBasketRequest);
+        BasketOrder basketOrderResult = basketResult.getBasketOrder();
+        BasketPayment basketPaymentResult = basketOrderResult.getBasketPayment();
+        assertNotNull(basketResult);
+        assertNotNull(basketOrderResult);
+        assertEquals(basketResult.getBasketOrder().getOrderStatus().getDescription(), "Confirm-Order");
+        assertNotNull(basketPaymentResult);
+        assertEquals(basketPaymentResult.getCardNumber(),1221345);
+        assertEquals(basketPaymentResult.getPaymentType().getDescription(),"บัตรเครดิต");
+        assertNotNull(basketOrderResult);
+        assertNotEquals(basketOrderResult.getInvoiceNumber(),"");
+    }
+
+    @Test
+    @DisplayName("Case Test Method GenerateInvoiceNumber ต้องได้ String ที่มีขนาด = 6 และ String ไม่เท่ากับ empty string")
+    void caseTestMethodGenerateInvoiceNumber() {
+        String generateInvoiceNumber = basketBusinessLogic.GenerateInvoiceNumber();
+        assertEquals(generateInvoiceNumber.length(),6);
+        assertNotEquals(generateInvoiceNumber,"");
     }
 
 
