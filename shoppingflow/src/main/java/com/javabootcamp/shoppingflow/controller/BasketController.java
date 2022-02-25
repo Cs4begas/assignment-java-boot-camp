@@ -5,6 +5,7 @@ import com.javabootcamp.shoppingflow.model.entity.Basket;
 import com.javabootcamp.shoppingflow.model.enums.OrderStatusType;
 import com.javabootcamp.shoppingflow.model.request.ConfirmOrderBasketRequest;
 import com.javabootcamp.shoppingflow.model.request.CreateBasketRequest;
+import com.javabootcamp.shoppingflow.model.response.BasketSummaryResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -43,6 +44,12 @@ public class BasketController {
     @ResponseBody
     public Basket ConfirmOrderBasket(@RequestHeader("customerId") Optional<Integer> customerId, @PathVariable Optional<Integer> id, @RequestBody ConfirmOrderBasketRequest confirmOrderBasketRequest) {
         return basketBusinessLogic.HandleBasketOrder(customerId, id, OrderStatusType.CONFIRM_ORDER, confirmOrderBasketRequest);
+    }
+
+    @GetMapping("/api/baskets/{id}/summary")
+    @ResponseBody
+    public BasketSummaryResponse GetBasketSummary(@RequestHeader("customerId") Optional<Integer> customerId, @PathVariable Optional<Integer> id){
+        return basketBusinessLogic.GetBasketSummary(customerId, id);
     }
 
 }
