@@ -6,6 +6,7 @@ import com.javabootcamp.shoppingflow.model.entity.*;
 import com.javabootcamp.shoppingflow.model.enums.OrderStatusType;
 import com.javabootcamp.shoppingflow.model.request.ConfirmOrderBasketRequest;
 import com.javabootcamp.shoppingflow.model.request.CreateBasketRequest;
+import com.javabootcamp.shoppingflow.model.response.BasketSummaryResponse;
 import com.javabootcamp.shoppingflow.repository.*;
 import com.javabootcamp.shoppingflow.validation.BasketValidation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -130,7 +131,7 @@ public class BasketBusinessLogic {
     public Basket ConfirmShippingBasketOrder(Basket basket, OrderStatus orderStatus) {
         String orderStatusCheckout = OrderStatusType.CHECKOUT.getName();
         if (!basket.getBasketOrder().getOrderStatus().getDescription().equals(orderStatusCheckout)) {
-            throw new ValidationException("The basket's status is not Checkout");
+            throw new ValidationException("Basket status is not Checkout");
         }
         BasketOrder basketOrder = basket.getBasketOrder();
         basketOrder.setOrderStatus(orderStatus);
@@ -140,7 +141,7 @@ public class BasketBusinessLogic {
     public Basket ConfirmOrderBasket(Basket basket, OrderStatus orderStatus, ConfirmOrderBasketRequest confirmOrderBasketRequest) {
         String orderStatusConfirmShipping = OrderStatusType.CONFIRM_SHIPPING.getName();
         if (!basket.getBasketOrder().getOrderStatus().getDescription().equals(orderStatusConfirmShipping)) {
-            throw new ValidationException("This basket's status is not Confirm-Shipping");
+            throw new ValidationException("Basket status is not Confirm-Shipping");
         }
         BasketOrder basketOrder = basket.getBasketOrder();
         int paymentTypeId = confirmOrderBasketRequest.getPaymentTypeId();
@@ -166,5 +167,36 @@ public class BasketBusinessLogic {
         Random rnd = new Random();
         int number = rnd.nextInt(999999);
         return String.format("%06d", number);
+    }
+
+    public BasketSummaryResponse GetBasketSummary(Optional<Integer> customerId, Optional<Integer> basketId) {
+        basketValidation.ValidateGetBasketRequest(customerId, basketId);
+        int customerIdValue = customerId.get();
+        int basketData = basketId.get();
+
+        Basket basket = basketRepository.findByIdAndCustomerId(customerIdValue, basketData).orElseThrow(() -> new NotFoundException("Customer's basket is not found"));;
+        if(basket.getBasketOrder() == null){
+            throw new ValidationException("Basket status is not Checkout");
+        }
+        if(!basket.getBasketOrder().getOrderStatus().getDescription().equals(OrderStatusType.CONFIRM_ORDER.getName())){
+            throw new ValidationException("Basket status is not Confirm-Order");
+        }
+        BasketSummaryResponse basketSummaryResponse = MappingBasketSummary(basket);
+
+        return basketSummaryResponse;
+    }
+
+    private BasketSummaryResponse MappingBasketSummary(Basket basket) {
+        BasketOrder basketOrder = basket.getBasketOrder();
+        BasketPayment basketPayment = basketOrder.getBasketPayment();
+
+        BasketSummaryResponse basketSummaryResponse = new BasketSummaryResponse();
+        basketSummaryResponse.setInvoiceNumber(basketOrder.getInvoiceNumber());
+        basketSummaryResponse.setPaymentType(basketPayment.getPaymentType());
+        basketSummaryResponse.setTransactionDate(basketPayment.getCreatedAt());
+        basketSummaryResponse.setNetAmount(basketOrder.getOrderAmount());
+        basketSummaryResponse.setPayer(basketPayment.getCardOwnerName());
+
+        return basketSummaryResponse;
     }
 }
