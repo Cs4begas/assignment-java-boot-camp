@@ -12,8 +12,13 @@ import java.util.Optional;
 
 @Component
 public class ProductBusinessLogic {
-    @Autowired
+
     private ProductRepository productRepository;
+
+    @Autowired
+    public ProductBusinessLogic(ProductRepository productRepository){
+        this.productRepository = productRepository;
+    }
 
     public List<Product> getProductsByQueryParams(Optional<String> name) {
         if (name.isPresent()) {
