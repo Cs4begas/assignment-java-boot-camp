@@ -78,13 +78,6 @@ CREATE TABLE basket_payment (
   created_at datetime
 );
 
-CREATE TABLE coupon (
-  id SERIAL PRIMARY KEY,
-  code varchar,
-  discount double,
-  is_deleted boolean
-);
-
 CREATE TABLE order_status (
   id SERIAL PRIMARY KEY,
   description varchar
@@ -131,9 +124,6 @@ insert into payment_type (id,description) VALUES (1,'บัตรเครดิ
 insert into payment_type (id,description) VALUES (2,'เก็บเงินปลายทาง');
 insert into payment_type (id,description) VALUES (3,'บัตรเดบิต');
 
---migration coupon
-insert into coupon (id,code,discount,is_deleted) VALUES (1,'Lazadee',0.1,FALSE);
-insert into coupon (id,code,discount,is_deleted) VALUES (2,'LazaDiscount',0.2,FALSE);
 
 --migration products
 insert into product (id,name,img,price,discount,rating,full_price,warranty,created_at,product_type_id) VALUES (1,'Adidas Yeezy Boost 350 V2','https://unsplash.com/photos/Cgb4gMKRcMA',28900,0.28,null,39900,2,now(),1);
