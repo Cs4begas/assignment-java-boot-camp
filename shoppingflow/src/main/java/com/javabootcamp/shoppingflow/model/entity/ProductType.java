@@ -17,7 +17,6 @@ public class ProductType {
     private int id;
     private String description;
 
-
     @OneToMany(mappedBy = "productType")
     private List<ProductSize> productSizes;
 }
