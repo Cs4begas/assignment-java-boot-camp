@@ -379,14 +379,12 @@ class BasketBusinessLogicTest {
         Optional<Integer> customerId = Optional.of(1);
         Optional<Integer> basketId = Optional.ofNullable(1);
         when(customerRepository.findById(1)).thenReturn(Optional.of(customer));
-        when(basketRepository.findByIdAndCustomerId(1, 1)).thenReturn(Optional.ofNullable(basket));
+        when(basketRepository.findByIdAndCustomerId(1, 1)).thenReturn(Optional.ofNullable(basketCheckout));
         when(orderStatusRepository.findById(1)).thenReturn(Optional.of(orderStatuses.stream().filter(x -> x.getDescription().equals("Checkout")).findFirst().get()));
 
-        Basket basketResult = basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT, null);
 
-        assertNotNull(basketResult);
-        assertNotNull(basketResult.getBasketOrder());
-        assertEquals(basketResult.getBasketOrder().getOrderStatus().getDescription(), "Checkout");
+        Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT, null));
+        assertEquals(exception.getMessage(), "Basket is already checkout");
     }
 
     @Test
@@ -451,7 +449,6 @@ class BasketBusinessLogicTest {
         Optional<Integer> customerId = Optional.of(1);
         Optional<Integer> basketId = Optional.ofNullable(1);
         confirmOrderBasketRequest.setPaymentTypeId(5);
-
         when(customerRepository.findById(1)).thenReturn(Optional.of(customer));
         when(basketRepository.findByIdAndCustomerId(1, 1)).thenReturn(Optional.ofNullable(basketConfirmShipping));
         when(orderStatusRepository.findById(3)).thenReturn(Optional.of(orderStatuses.stream().filter(x -> x.getDescription().equals("Confirm-Order")).findFirst().get()));
