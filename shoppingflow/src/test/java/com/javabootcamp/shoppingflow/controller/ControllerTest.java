@@ -244,7 +244,9 @@ class ControllerTest {
     void caseGetProductsByNameAdidasNMD() {
         List<Product> mockProductAdidas = mockProducts.stream().filter(product -> product.getName().contains("Adidas NMD")).collect(Collectors.toList());
         when(productRepository.findByNameIgnoreCaseContaining("Adidas NMD")).thenReturn(mockProductAdidas  );
+
         Product[] products = testRestTemplate.getForObject("/api/products?name={name}", Product[].class,"Adidas NMD");
+
         assertEquals(products.length, 2);
     }
 
@@ -253,7 +255,9 @@ class ControllerTest {
     @DisplayName("Case GetProductId1 [Choose a product]")
     void caseGetProductId1() {
         when(productRepository.findById(1)).thenReturn(Optional.of(mockProductSelected));
+
         Product product = testRestTemplate.getForObject("/api/products/1", Product.class);
+
         assertEquals(product.getId(), 1);
         assertEquals(product.getName(), "Adidas NMD R1");
         assertNotNull(product.getProductType());
@@ -271,9 +275,7 @@ class ControllerTest {
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("customerId", String.valueOf(customer.getId()));
-
         HttpEntity<CreateBasketRequest> request = new HttpEntity<>(createBasketRequest, headers);
-
         ResponseEntity<Basket> basketResposne = testRestTemplate.postForEntity("/api/baskets", request, Basket.class);
 
         Basket basket = basketResposne.getBody();
@@ -297,8 +299,8 @@ class ControllerTest {
         headers.set("customerId", String.valueOf(customer.getId()));
         HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
         ResponseEntity<Basket> basketResponse = testRestTemplate.exchange("/api/baskets/1", HttpMethod.GET, requestEntity, Basket.class);
-        Basket basket = basketResponse.getBody();
 
+        Basket basket = basketResponse.getBody();
         assertNotNull(basket);
         assertNotNull(basket.getBasketItem());
         assertNotNull(basket.getCustomer());
@@ -326,8 +328,8 @@ class ControllerTest {
         headers.set("customerId", String.valueOf(customer.getId()));
         HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
         ResponseEntity<Basket> basketResponse = testRestTemplate.exchange("/api/baskets/1/checkout", HttpMethod.PATCH, requestEntity, Basket.class);
-        Basket basket = basketResponse.getBody();
 
+        Basket basket = basketResponse.getBody();
         assertNotNull(basket);
         assertNotNull(basket.getBasketItem());
         assertNotNull(basket.getCustomer());
@@ -348,8 +350,8 @@ class ControllerTest {
         headers.set("customerId", String.valueOf(customer.getId()));
         HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
         ResponseEntity<Basket> basketResponse = testRestTemplate.exchange("/api/baskets/1/confirm-shipping", HttpMethod.PATCH, requestEntity, Basket.class);
-        Basket basket = basketResponse.getBody();
 
+        Basket basket = basketResponse.getBody();
         assertNotNull(basket);
         assertNotNull(basket.getBasketItem());
         assertNotNull(basket.getCustomer());

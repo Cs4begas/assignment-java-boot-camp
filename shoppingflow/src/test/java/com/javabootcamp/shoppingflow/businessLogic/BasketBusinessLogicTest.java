@@ -379,14 +379,12 @@ class BasketBusinessLogicTest {
         Optional<Integer> customerId = Optional.of(1);
         Optional<Integer> basketId = Optional.ofNullable(1);
         when(customerRepository.findById(1)).thenReturn(Optional.of(customer));
-        when(basketRepository.findByIdAndCustomerId(1, 1)).thenReturn(Optional.ofNullable(basket));
+        when(basketRepository.findByIdAndCustomerId(1, 1)).thenReturn(Optional.ofNullable(basketCheckout));
         when(orderStatusRepository.findById(1)).thenReturn(Optional.of(orderStatuses.stream().filter(x -> x.getDescription().equals("Checkout")).findFirst().get()));
 
-        Basket basketResult = basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT, null);
 
-        assertNotNull(basketResult);
-        assertNotNull(basketResult.getBasketOrder());
-        assertEquals(basketResult.getBasketOrder().getOrderStatus().getDescription(), "Checkout");
+        Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CHECKOUT, null));
+        assertEquals(exception.getMessage(), "Basket is already checkout");
     }
 
     @Test
@@ -451,7 +449,6 @@ class BasketBusinessLogicTest {
         Optional<Integer> customerId = Optional.of(1);
         Optional<Integer> basketId = Optional.ofNullable(1);
         confirmOrderBasketRequest.setPaymentTypeId(5);
-
         when(customerRepository.findById(1)).thenReturn(Optional.of(customer));
         when(basketRepository.findByIdAndCustomerId(1, 1)).thenReturn(Optional.ofNullable(basketConfirmShipping));
         when(orderStatusRepository.findById(3)).thenReturn(Optional.of(orderStatuses.stream().filter(x -> x.getDescription().equals("Confirm-Order")).findFirst().get()));
@@ -472,6 +469,7 @@ class BasketBusinessLogicTest {
         when(paymentTypeRepository.findById(1)).thenReturn(Optional.ofNullable(paymentType));
 
         Basket basketResult = basketBusinessLogic.HandleBasketOrder(customerId, basketId, OrderStatusType.CONFIRM_ORDER, confirmOrderBasketRequest);
+
         BasketOrder basketOrderResult = basketResult.getBasketOrder();
         BasketPayment basketPaymentResult = basketOrderResult.getBasketPayment();
         assertNotNull(basketResult);
@@ -488,6 +486,7 @@ class BasketBusinessLogicTest {
     @DisplayName("Case Test Method GenerateInvoiceNumber ต้องได้ String ที่มีขนาด = 6 และ String ไม่เท่ากับ empty string")
     void caseTestMethodGenerateInvoiceNumber() {
         String generateInvoiceNumber = basketBusinessLogic.GenerateInvoiceNumber();
+
         assertEquals(generateInvoiceNumber.length(),6);
         assertNotEquals(generateInvoiceNumber,"");
     }
@@ -498,6 +497,7 @@ class BasketBusinessLogicTest {
         Optional<Integer> customerId = Optional.of(1);
         Optional<Integer> basketId = Optional.ofNullable(1);
         when(basketRepository.findByIdAndCustomerId(customerId.get(), basketId.get())).thenReturn(Optional.ofNullable(basket));
+
         Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.GetBasketSummary(customerId, basketId));
         assertEquals(exception.getMessage(),"Basket status is not Checkout");
     }
@@ -508,6 +508,7 @@ class BasketBusinessLogicTest {
         Optional<Integer> customerId = Optional.of(1);
         Optional<Integer> basketId = Optional.ofNullable(1);
         when(basketRepository.findByIdAndCustomerId(customerId.get(), basketId.get())).thenReturn(Optional.ofNullable(basketConfirmShipping));
+
         Exception exception = assertThrows(ValidationException.class, () -> basketBusinessLogic.GetBasketSummary(customerId, basketId));
         assertEquals(exception.getMessage(),"Basket status is not Confirm-Order");
     }
@@ -519,6 +520,7 @@ class BasketBusinessLogicTest {
         Optional<Integer> customerId = Optional.of(1);
         Optional<Integer> basketId = Optional.ofNullable(1);
         when(basketRepository.findByIdAndCustomerId(customerId.get(), basketId.get())).thenReturn(Optional.ofNullable(basketConfirmOrder));
+
         BasketSummaryResponse basketSummaryResponse = basketBusinessLogic.GetBasketSummary(customerId, basketId);
 
         assertNotNull(basketSummaryResponse.getInvoiceNumber());
